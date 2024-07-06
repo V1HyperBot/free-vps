@@ -1,10 +1,14 @@
 name: Deploy Ngrok VPS
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      NGROK_API: 
+        required: true 
+      SSH_USERNAME: 
+        required: true 
+      SSH_PASSWORD: 
+        required: true 
 
 jobs:
   deploy:
@@ -30,8 +34,8 @@ jobs:
 
     - name: Add SSH User
       env:
-        SSH_USERNAME: Checkout
-        SSH_PASSWORD: _Admin123
+        SSH_USERNAME: ${{ github.event.inputs.SSH_USERNAME }}
+        SSH_PASSWORD: ${{ github.event.inputs.SSH_PASSWORD }}
       run: |
         sudo adduser --disabled-password --gecos "" $SSH_USERNAME --force-badname
         echo "$SSH_USERNAME:$SSH_PASSWORD" | sudo chpasswd
@@ -39,7 +43,7 @@ jobs:
 
     - name: Start Ngrok
       env:
-        NGROK_AUTHTOKEN: 2iscdz2Zuifmf1UO21OSSxEksMf_5RTq4Pih9xyfAN9EwmLHr
+        NGROK_AUTHTOKEN: ${{ github.event.inputs.NGROK_API }}
       run: |
         ngrok authtoken $NGROK_AUTHTOKEN
         nohup ngrok tcp 22 &
@@ -55,8 +59,7 @@ jobs:
       run: |
         export NGROK_URL=$(jq -r '.tunnels[] | select(.proto=="tcp") | .public_url' tunnels.json)
         echo "SSH login information:"
-        echo "Username: ${{ secrets.SSH_USERNAME }}"
-        echo "Password: ${{ secrets.SSH_PASSWORD }}"
+        echo "Username: ${{ github.event.inputs.SSH_USERNAME }}"
+        echo "Password: ${{ github.event.inputs.SSH_PASSWORD }}"
         echo "Ngrok URL: $NGROK_URL"
-        echo "Use the above URL as the host in PuTTY with port 22"
         sleep infinity 
