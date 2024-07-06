@@ -1,4 +1,4 @@
-name: Deploy VPS with Ngrok
+name: Deploy VPS using ngrok API
 
 on:
   push:
@@ -10,26 +10,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-
-    - name: Install Ngrok
+    - name: Get ngrok VPS
+      id: get-vps
       run: |
-        sudo apt-get update
-        sudo apt-get install -y unzip
-        wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
-        unzip ngrok-stable-linux-amd64.zip
-        sudo mv ngrok /usr/local/bin
+        curl -s -X POST "https://api.ngrok.com/v2/tunnels" \
+        -H "Authorization: Bearer 2iscdz2Zuifmf1UO21OSSxEksMf_5RTq4Pih9xyfAN9EwmLHr" \
+        -H "Content-Type: application/json" \
+        -d '{
+              "name": "my-vps",
+              "proto": "tcp",
+              "addr": "22"
+            }' > ngrok_response.json
 
-    - name: Authenticate Ngrok
-      run: |
-        ngrok authtoken 2iscdz2Zuifmf1UO21OSSxEksMf_5RTq4Pih9xyfAN9EwmLHr
+        jq . ngrok_response.json
 
-    - name: Start Ngrok
+    - name: Extract VPS info
       run: |
-        ngrok tcp 22 --log=stdout
+        NGROK_HOST=$(jq -r '.public_url' ngrok_response.json)
+        NGROK_PORT=$(jq -r '.config.addr' ngrok_response.json)
+
+        echo "NGROK_HOST=$NGROK_HOST" >> $GITHUB_ENV
+        echo "NGROK_PORT=$NGROK_PORT" >> $GITHUB_ENV
+
+    - name: Add username and password
+      run: |
+        USERNAME="admin"
+        PASSWORD="password123"
+        echo "USERNAME=$USERNAME" >> $GITHUB_ENV
+        echo "PASSWORD=$PASSWORD" >> $GITHUB_ENV
+
+    - name: Output VPS details
+      run: |
+        echo "VPS Host: ${{ env.NGROK_HOST }}"
+        echo "VPS Port: ${{ env.NGROK_PORT }}"
+        echo "Username: ${{ env.USERNAME }}"
+        echo "Password: ${{ env.PASSWORD }}"
