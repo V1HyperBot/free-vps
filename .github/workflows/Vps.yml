@@ -56,12 +56,12 @@ jobs:
         NGROK_HOST=$(echo $NGROK_URL | cut -d':' -f2 | cut -c 3-)
         NGROK_PORT=$(echo $NGROK_URL | cut -d':' -f3)
         echo "SSH login information:"
-        echo "Username: $SSH_USERNAME"
-        echo "Password: $SSH_PASSWORD"
+        echo "Username: ${{ github.event.inputs.SSH_USERNAME }}"
+        echo "Password: ${{ github.event.inputs.SSH_PASSWORD }}"
         echo "Hostname: $NGROK_HOST"
         echo "Port: $NGROK_PORT"
 
     - name: Display Connection Instructions
       run: |
         echo "Use the above information to connect using PuTTY or any SSH client."
-        sleep infinity 
+        sleep infinity
