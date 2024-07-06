@@ -1,0 +1,35 @@
+name: Deploy VPS with Ngrok
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install Ngrok
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y unzip
+        wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
+        unzip ngrok-stable-linux-amd64.zip
+        sudo mv ngrok /usr/local/bin
+
+    - name: Authenticate Ngrok
+      run: |
+        ngrok authtoken 2iscdz2Zuifmf1UO21OSSxEksMf_5RTq4Pih9xyfAN9EwmLHr
+
+    - name: Start Ngrok
+      run: |
+        ngrok tcp 22 --log=stdout
