@@ -2,7 +2,7 @@ name: Ngrok VPS Setup
 
 on: 
   push:
-    branches: 
+    branches:
       - main
 
 jobs:
@@ -10,49 +10,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: Set up Ngrok VPS
+        env:
+          NGROK_API_TOKEN: 2iscdz2Zuifmf1UO21OSSxEksMf_5RTq4Pih9xyfAN9EwmLHr
+          VPS_NAME: tomi
+          VPS_PASSWORD: '@D4g88out5d'
+        run: |
+          # Install ngrok
+          curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc > /dev/null
+          echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+          sudo apt update && sudo apt install ngrok
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+          # Configure ngrok authtoken
+          ngrok config add-authtoken $NGROK_API_TOKEN
 
-    - name: Install requests library
-      run: |
-        python -m pip install --upgrade pip
-        pip install requests
+          # Create and configure a new tunnel
+          RESPONSE=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $NGROK_API_TOKEN" \
+            -d '{
+              "name": "'$VPS_NAME'",
+              "addr": "80",
+              "proto": "http",
+              "inspect": false
+            }' https://api.ngrok.com/tunnels)
 
-    - name: Get VPS using Ngrok API
-      env:
-        NGROK_API_KEY: 2iscdz2Zuifmf1UO21OSSxEksMf_5RTq4Pih9xyfAN9EwmLHr
-        VPS_NAME: tomi
-        VPS_PASSWORD: '@D4g88out5d'
-      run: |
-        python - <<EOF
-        import requests
+          # Extract public URL
+          PUBLIC_URL=$(echo $RESPONSE | jq -r .public_url)
+          echo "Public URL: $PUBLIC_URL"
 
-        api_key = "${{ env.NGROK_API_KEY }}"
-        name = "${{ env.VPS_NAME }}"
-        password = "${{ env.VPS_PASSWORD }}"
+          # Display tunnel information
+          echo $RESPONSE | jq
 
-        url = "https://api.ngrok.com/endpoints"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "name": name,
-            "password": password,
-            "protocol": "tcp",
-            "addr": "22"
-        }
+          # Save tunnel info
+          echo "VPS Name: $VPS_NAME" >> vps_info.txt
+          echo "VPS Password: $VPS_PASSWORD" >> vps_info.txt
+          echo "Public URL: $PUBLIC_URL" >> vps_info.txt
+          
+          # Optionally, you can add additional steps to utilize the VPS info as needed
 
-        response = requests.post(url, headers=headers, json=payload)
-        if response.status_code == 201:
-            print("VPS created successfully")
-            print(response.json())
-        else:
-            print("Failed to create VPS")
-            print(response.text)
-        EOF
+      - name: Upload VPS info as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: vps-info
+          path: vps_info.txt
