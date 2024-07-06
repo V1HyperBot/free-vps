@@ -1,50 +1,58 @@
-name: Deploy VPS using ngrok API
+name: Ngrok VPS Setup
 
-on:
+on: 
   push:
-    branches:
+    branches: 
       - main
 
 jobs:
-  deploy:
+  setup-vps:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Get ngrok VPS
-      id: get-vps
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install requests library
       run: |
-        curl -s -X POST "https://api.ngrok.com/v2/tunnels" \
-        -H "Authorization: Bearer 2iscdz2Zuifmf1UO21OSSxEksMf_5RTq4Pih9xyfAN9EwmLHr" \
-        -H "Content-Type: application/json" \
-        -d '{
-              "name": "my-vps",
-              "proto": "tcp",
-              "addr": "22"
-            }' > ngrok_response.json
+        python -m pip install --upgrade pip
+        pip install requests
 
-        jq . ngrok_response.json
-
-    - name: Extract VPS info
+    - name: Get VPS using Ngrok API
+      env:
+        NGROK_API_KEY: 2iscdz2Zuifmf1UO21OSSxEksMf_5RTq4Pih9xyfAN9EwmLHr
+        VPS_NAME: tomi
+        VPS_PASSWORD: '@D4g88out5d'
       run: |
-        NGROK_HOST=$(jq -r '.public_url' ngrok_response.json)
-        NGROK_PORT=$(jq -r '.config.addr' ngrok_response.json)
+        python - <<EOF
+        import requests
 
-        echo "NGROK_HOST=$NGROK_HOST" >> $GITHUB_ENV
-        echo "NGROK_PORT=$NGROK_PORT" >> $GITHUB_ENV
+        api_key = "${{ env.NGROK_API_KEY }}"
+        name = "${{ env.VPS_NAME }}"
+        password = "${{ env.VPS_PASSWORD }}"
 
-    - name: Add username and password
-      run: |
-        USERNAME="admin"
-        PASSWORD="password123"
-        echo "USERNAME=$USERNAME" >> $GITHUB_ENV
-        echo "PASSWORD=$PASSWORD" >> $GITHUB_ENV
+        url = "https://api.ngrok.com/endpoints"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "name": name,
+            "password": password,
+            "protocol": "tcp",
+            "addr": "22"
+        }
 
-    - name: Output VPS details
-      run: |
-        echo "VPS Host: ${{ env.NGROK_HOST }}"
-        echo "VPS Port: ${{ env.NGROK_PORT }}"
-        echo "Username: ${{ env.USERNAME }}"
-        echo "Password: ${{ env.PASSWORD }}"
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 201:
+            print("VPS created successfully")
+            print(response.json())
+        else:
+            print("Failed to create VPS")
+            print(response.text)
+        EOF
