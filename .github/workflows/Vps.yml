@@ -46,7 +46,7 @@ jobs:
         NGROK_AUTHTOKEN: ${{ github.event.inputs.NGROK_API }}
       run: |
         ngrok authtoken $NGROK_AUTHTOKEN
-        nohup ngrok tcp 22 &
+        nohup bash -c 'while true; do ngrok tcp 22; sleep 3600; done' &
 
     - name: Get Ngrok Tunnel Info
       run: |
