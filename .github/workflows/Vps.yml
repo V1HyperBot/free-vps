@@ -14,22 +14,50 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl jq openssh-server
+
     - name: Install Ngrok
       run: |
         curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc > /dev/null
         echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
-        sudo apt-get update && sudo apt-get install ngrok
+        sudo apt-get update && sudo apt-get install -y ngrok
+
+    - name: Start SSH Service
+      run: sudo service ssh start
+
+    - name: Add SSH User
+      env:
+        SSH_USERNAME: "Tomi"
+        SSH_PASSWORD: "@Sthu89gt6"
+      run: |
+        sudo adduser --disabled-password --gecos "" $SSH_USERNAME
+        echo "$SSH_USERNAME:$SSH_PASSWORD" | sudo chpasswd
+        sudo usermod -aG sudo $SSH_USERNAME
 
     - name: Start Ngrok
       env:
         NGROK_AUTHTOKEN: 2iscdz2Zuifmf1UO21OSSxEksMf_5RTq4Pih9xyfAN9EwmLHr
       run: |
         ngrok authtoken $NGROK_AUTHTOKEN
-        ngrok tcp 22 &
+        nohup ngrok tcp 22 &
 
     - name: Get Ngrok Tunnel Info
       run: |
         sleep 10
         curl --silent --show-error http://127.0.0.1:4040/api/tunnels > tunnels.json
         cat tunnels.json
-        jq '.tunnels[] | select(.proto=="tcp") | .public_url' tunnels.json
+        export NGROK_URL=$(jq -r '.tunnels[] | select(.proto=="tcp") | .public_url' tunnels.json)
+        echo "Ngrok TCP URL: $NGROK_URL"
+
+    - name: Display Connection Info
+      run: |
+        export NGROK_URL=$(jq -r '.tunnels[] | select(.proto=="tcp") | .public_url' tunnels.json)
+        echo "SSH login information:"
+        echo "Username: ${{ secrets.SSH_USERNAME }}"
+        echo "Password: ${{ secrets.SSH_PASSWORD }}"
+        echo "Ngrok URL: $NGROK_URL"
+        echo "Use the above URL as the host in PuTTY with port 22"
+        sleep infinity 
