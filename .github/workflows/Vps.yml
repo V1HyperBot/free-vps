@@ -30,10 +30,10 @@ jobs:
 
     - name: Add SSH User
       env:
-        SSH_USERNAME: "Tomi"
-        SSH_PASSWORD: "@Sthu89gt6"
+        SSH_USERNAME: Checkout
+        SSH_PASSWORD: _Admin123
       run: |
-        sudo adduser --disabled-password --gecos "" $SSH_USERNAME
+        sudo adduser --disabled-password --gecos "" $SSH_USERNAME --force-badname
         echo "$SSH_USERNAME:$SSH_PASSWORD" | sudo chpasswd
         sudo usermod -aG sudo $SSH_USERNAME
 
@@ -48,7 +48,6 @@ jobs:
       run: |
         sleep 10
         curl --silent --show-error http://127.0.0.1:4040/api/tunnels > tunnels.json
-        cat tunnels.json
         export NGROK_URL=$(jq -r '.tunnels[] | select(.proto=="tcp") | .public_url' tunnels.json)
         echo "Ngrok TCP URL: $NGROK_URL"
 
