@@ -1,58 +1,35 @@
-name: Ngrok VPS Setup
+name: Deploy Ngrok VPS
 
-on: 
+on:
   push:
-    branches: 
+    branches:
       - main
+  workflow_dispatch:
 
 jobs:
-  setup-vps:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-
-    - name: Install requests library
+    - name: Install Ngrok
       run: |
-        python -m pip install --upgrade pip
-        pip install requests
+        curl -s https://ngrok-agent.s3.amazonaws.com/ngrok.asc | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc > /dev/null
+        echo "deb https://ngrok-agent.s3.amazonaws.com buster main" | sudo tee /etc/apt/sources.list.d/ngrok.list
+        sudo apt-get update && sudo apt-get install ngrok
 
-    - name: Get VPS using Ngrok API
+    - name: Start Ngrok
       env:
-        NGROK_API_KEY: ${{ secrets.NGROK_API_KEY }}
-        VPS_NAME: tomi
-        VPS_PASSWORD: '@D4g88out5d'
+        NGROK_AUTHTOKEN: 2iscdz2Zuifmf1UO21OSSxEksMf_5RTq4Pih9xyfAN9EwmLHr
       run: |
-        python - <<EOF
-        import requests
+        ngrok authtoken $NGROK_AUTHTOKEN
+        ngrok tcp 22 &
 
-        api_key = "${{ env.NGROK_API_KEY }}"
-        name = "${{ env.VPS_NAME }}"
-        password = "${{ env.VPS_PASSWORD }}"
-
-        url = "https://api.ngrok.com/endpoints"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "name": name,
-            "password": password,
-            "protocol": "tcp",
-            "addr": "22"
-        }
-
-        response = requests.post(url, headers=headers, json=payload)
-        if response.status_code == 201:
-            print("VPS created successfully")
-            print(response.json())
-        else:
-            print("Failed to create VPS")
-            print(response.text)
-        EOF
+    - name: Get Ngrok Tunnel Info
+      run: |
+        sleep 10
+        curl --silent --show-error http://127.0.0.1:4040/api/tunnels > tunnels.json
+        cat tunnels.json
+        jq '.tunnels[] | select(.proto=="tcp") | .public_url' tunnels.json
