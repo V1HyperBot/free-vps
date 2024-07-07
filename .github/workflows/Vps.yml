@@ -60,5 +60,8 @@ jobs:
         echo "Password: ${{ github.event.inputs.SSH_PASSWORD }}"
         echo "Hostname: $NGROK_HOST"
         echo "Port: $NGROK_PORT"
+
+    - name: Display Connection Instructions
+      run: |
         echo "Use the above information to connect using PuTTY or any SSH client."
         sleep infinity
