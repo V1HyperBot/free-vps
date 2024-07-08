@@ -1,4 +1,4 @@
-name: Deploy Ngrok VPS
+name: Deploy VPS
 
 on:
   workflow_dispatch:
@@ -16,6 +16,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Install Dependencies
+      run: sudo apt-get install nmap -y
+          
     - name: Add SSH User
       env:
         SSH_USERNAME: ${{ github.event.inputs.SSH_USERNAME }}
@@ -31,4 +34,8 @@ jobs:
         echo "Username: ${{ github.event.inputs.SSH_USERNAME }}"
         echo "Password: ${{ github.event.inputs.SSH_PASSWORD }}"
         echo "Hostname: $(hostname -I | cut -d' ' -f1)"
+
+    - name: Port
+      run: |
+        nmap -p- $(hostname -I | cut -d' ' -f1)
         sleep infinity
