@@ -18,6 +18,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Cek ip4
+      run: hostname -I
+
     - name: Install Dependencies
       run: |
         sudo apt-get update
