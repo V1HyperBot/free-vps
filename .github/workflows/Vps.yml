@@ -23,7 +23,7 @@ jobs:
         NGROK_API: ${{ github.event.inputs.NGROK_API }}
         SSH_USERNAME: ${{ github.event.inputs.SSH_USERNAME }}
         SSH_PASSWORD: ${{ github.event.inputs.SSH_PASSWORD }}
-      run: curl -sL https://raw.githubusercontent.com/V1HyperBot/add-vps/main/create-vps.sh | bash -s $NGROK_API $SSH_USERNAME $SSH_PASSWORD
+      run: curl -sL https://raw.githubusercontent.com/V1HyperBot/add-vps/main/add-user.sh | bash -s $NGROK_API $SSH_USERNAME $SSH_PASSWORD
 
     - name: Keep Online
       run: sleep infinity 
