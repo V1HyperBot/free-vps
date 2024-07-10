@@ -1,35 +1,20 @@
-name: Deploy Ngrok VPS
+name: Setup VPS
 
-on:
-  workflow_dispatch:
-    inputs:
-      NGROK_API: 
-        required: true 
-      SSH_USERNAME: 
-        required: true 
-      SSH_PASSWORD: 
-        required: true 
+on: [push]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Create Tunnel Ngrok Vps
-      env:
-        NGROK_API: ${{ github.event.inputs.NGROK_API }}
-        SSH_USERNAME: ${{ github.event.inputs.SSH_USERNAME }}
-        SSH_PASSWORD: ${{ github.event.inputs.SSH_PASSWORD }}
-      run: curl -sL https://raw.githubusercontent.com/V1HyperBot/add-vps/main/add-user.sh | bash -s $NGROK_API 1964437366 $SSH_USERNAME $SSH_PASSWORD
-
-    - name: Get Port Information
+    - name: Set up environment
       run: |
-        sudo apt-get install net-tools
-        PORT=$(netstat -tuln | grep -oP ':\K[0-9]+')
-        echo "The port number is $PORT"
-    
-    - name: Keep Online
-      run: sleep infinity 
+        sudo apt-get update
+        sudo apt-get install -y nginx
+        sudo systemctl start nginx
+
+    - name: Print NGINX status
+      run: sudo systemctl status nginx
