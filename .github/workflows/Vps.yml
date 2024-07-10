@@ -1,20 +1,55 @@
-name: Setup VPS
+name: Setup Oracle Cloud VPS
 
-on: [push]
+on: 
+  push:
+    branches: 
+      - main
 
 jobs:
-  build:
+  setup-vps:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Set up environment
+    - name: Set up Oracle Cloud CLI
       run: |
-        sudo apt-get update
-        sudo apt-get install -y nginx
-        sudo systemctl start nginx
+        curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh | bash
+        oci --version
 
-    - name: Print NGINX status
-      run: sudo systemctl status nginx
+    - name: Configure Oracle Cloud CLI
+      run: |
+        mkdir -p ~/.oci
+        echo '[DEFAULT]' > ~/.oci/config
+        echo 'user=${{ secrets.ORACLE_USER }}' >> ~/.oci/config
+        echo 'fingerprint=${{ secrets.ORACLE_FINGERPRINT }}' >> ~/.oci/config
+        echo 'key_file=~/.oci/oci_api_key.pem' >> ~/.oci/config
+        echo 'tenancy=${{ secrets.ORACLE_TENANCY }}' >> ~/.oci/config
+        echo 'region=${{ secrets.ORACLE_REGION }}' >> ~/.oci/config
+
+        echo "${{ secrets.ORACLE_API_KEY }}" > ~/.oci/oci_api_key.pem
+        chmod 600 ~/.oci/oci_api_key.pem
+
+    - name: Create VPS Instance
+      run: |
+        oci compute instance launch \
+          --availability-domain "your-availability-domain" \
+          --compartment-id "your-compartment-id" \
+          --shape "VM.Standard.E2.1.Micro" \
+          --display-name "Github-Actions-VPS" \
+          --image-id "your-image-id" \
+          --subnet-id "your-subnet-id"
+
+    - name: Get Instance Details
+      run: |
+        oci compute instance list \
+          --compartment-id "your-compartment-id" \
+          --query "data[?\"display-name\"=='Github-Actions-VPS']"
+
+    - name: Output Instance Details
+      run: |
+        INSTANCE_ID=$(oci compute instance list --compartment-id "your-compartment-id" --query "data[?\"display-name\"=='Github-Actions-VPS'].id" --raw-output)
+        PUBLIC_IP=$(oci compute instance list-vnics --instance-id $INSTANCE_ID --query "data[0].\"public-ip\"" --raw-output)
+        echo "Public IP: $PUBLIC_IP"
+        sleep 360
